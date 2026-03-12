@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMI Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f0f4f8;
+        }
+
+        .card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+            width: 360px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #1a202c;
+            margin-bottom: 0.25rem;
+        }
+
+        p.subtitle {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 0.4rem;
+        }
+
+        input {
+            width: 100%;
+            padding: 0.65rem 1rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            color: #2d3748;
+            margin-bottom: 1.2rem;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.75rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #5a67d8;
+        }
+
+        button:disabled {
+            background: #a0aec0;
+            cursor: not-allowed;
+        }
+
+        .result {
+            margin-top: 1.5rem;
+            padding: 1.2rem;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+
+        .result .bmi-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .result .bmi-label {
+            font-size: 0.95rem;
+            margin-top: 0.4rem;
+            font-weight: 500;
+        }
+
+        .error {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: #fff5f5;
+            color: #c53030;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .underweight {
+            background: #ebf8ff;
+            color: #2b6cb0;
+        }
+
+        .normal {
+            background: #f0fff4;
+            color: #276749;
+        }
+
+        .overweight {
+            background: #fffaf0;
+            color: #c05621;
+        }
+
+        .obese {
+            background: #fff5f5;
+            color: #c53030;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <h1>BMI Calculator</h1>
+        <p class="subtitle">Connected to your FastAPI backend</p>
+
+        <label for="weight">Weight (kg)</label>
+        <input type="number" id="weight" placeholder="e.g. 90" step="0.1" min="20" max="200" />
+
+        <label for="height">Height (m)</label>
+        <input type="number" id="height" placeholder="e.g. 1.64" step="0.01" min="1.0" max="2.5" />
+
+        <button onclick="calculateBMI()" id="btn">Calculate BMI</button>
+
+        <div class="result" id="result">
+            <div class="bmi-value" id="bmi-value"></div>
+            <div class="bmi-label" id="bmi-label"></div>
+        </div>
+
+        <div class="error" id="error"></div>
+    </div>
+
+    <script>
+        async function calculateBMI() {
+            const weight = document.getElementById("weight").value.trim();
+            const height = document.getElementById("height").value.trim();
+            const btn = document.getElementById("btn");
+            const result = document.getElementById("result");
+            const error = document.getElementById("error");
+
+            result.style.display = "none";
+            error.style.display = "none";
+
+            if (!weight || !height) {
+                showError("Please enter both weight and height.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "Calculating...";
+
+            try {
+                const url = `http://127.0.0.1:8000/calculate_bmi?weight=${weight}&height=${height}`;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || "API error");
+                }
+
+                const data = await response.json();
+                const bmi = parseFloat(data.bmi).toFixed(1);
+                const message = data.message;
+
+                showResult(bmi, message);
+
+            } catch (err) {
+                showError(err.message === "Failed to fetch"
+                    ? "Could not reach the API. Is your FastAPI server running?"
+                    : err.message
+                );
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Calculate BMI";
+            }
+        }
+
+        function showResult(bmi, message) {
+            const result = document.getElementById("result");
+            const bmiValue = document.getElementById("bmi-value");
+            const bmiLabel = document.getElementById("bmi-label");
+
+            let cssClass;
+            if (message.includes("Underweight")) cssClass = "underweight";
+            else if (message.includes("Normal")) cssClass = "normal";
+            else if (message.includes("Overweight")) cssClass = "overweight";
+            else cssClass = "obese";
+
+            result.className = `result ${cssClass}`;
+            bmiValue.textContent = bmi;
+            bmiLabel.textContent = message;
+            result.style.display = "block";
+        }
+
+        function showError(msg) {
+            const error = document.getElementById("error");
+            error.textContent = msg;
+            error.style.display = "block";
+        }
+
+        document.addEventListener("keydown", e => {
+            if (e.key === "Enter") calculateBMI();
+        });
+    </script>
+
+</body>
+
+</html>

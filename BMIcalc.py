@@ -8,6 +8,7 @@ class BMIRequest(BaseModel):
     message : str
 # creating an instance of the FastAPI class to create our API
 app = FastAPI()
+# adding CORS (Cross-Origin Resource Sharing) middleware to allow requests from any origin, which is useful for testing the API from different clients or front-end applications.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
